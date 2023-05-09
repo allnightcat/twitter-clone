@@ -1,32 +1,34 @@
 import React, { useEffect, useState } from "react";
 import { dbService } from "../fbase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  onSnapshot,
+  doc,
+} from "firebase/firestore";
 
-function Home() {
+function Home({ userObj }) {
   const [tweet, setTweet] = useState("");
   const [tweets, setTweets] = useState([]);
 
   useEffect(() => {
-    getTweet();
-  }, []);
-
-  const getTweet = async () => {
-    const dbTweets = await getDocs(collection(dbService, "tweets"));
-    dbTweets.forEach((document) => {
-      const tweetObject = {
-        ...document.data(),
-        id: document.id,
-      };
-      setTweets((prev) => [tweetObject, ...prev]);
+    onSnapshot(collection(dbService, "tweets"), (snapshot) => {
+      const tweetArray = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTweets(tweetArray);
     });
-  };
+  }, []);
 
   const onSubmit = async (event) => {
     event.preventDefault();
     try {
       const docRef = await addDoc(collection(dbService, "tweets"), {
-        tweet: tweet,
+        text: tweet,
         createdAt: Date.now(),
+        userId: userObj.uid,
       });
       console.log("Document written with ID: ", docRef.id);
     } catch (e) {
@@ -56,7 +58,7 @@ function Home() {
       <div>
         {tweets.map((tweet) => (
           <div key={tweet.id}>
-            <h4>{tweet.tweet}</h4>
+            <h4>{tweet.text}</h4>
           </div>
         ))}
       </div>
